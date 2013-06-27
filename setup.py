@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-version = "0.1"
+version = "0.11"
 DESCRIPTION      = 'A combat simulator'
 LONG_DESCRIPTION = open('README.txt').read()
 
@@ -24,7 +24,7 @@ setup(name             = 'CombatWiz'       ,
             'Topic :: Games/Entertainment :: Simulation'
             ],
       download_url = 'http://github.com/downloads/kenfar/CombatWiz/CombatWiz-%s.tar.gz' % version,
-      scripts      = ['scripts/combatwiz'         ],
+      scripts      = ['scripts/combatwiz_runner.py'],
       install_requires     = ['appdirs    >= 1.1.0' ,
                               'pytester'            ,
                               'tox'                 ,

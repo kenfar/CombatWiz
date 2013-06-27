@@ -1,0 +1,14 @@
+bin
+build
+development_notes.txt
+dist
+dist/*
+include
+lib
+obsolete
+.pytest.restart
+*.pyc
+.*.swp
+.coverage
+__pycache__
+.tox
