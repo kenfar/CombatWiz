@@ -133,14 +133,17 @@ def get_args():
     parser.add_argument('critters',
         nargs='*',
         type=int,
+        default=[],
         help='Specifies the critters to fight by id. All monsters will be on Side-A, all humanoids on Side-B.')
     parser.add_argument('--sidea',
         nargs='*',
         type=int,
+        default=[],
         help='explicitly list critters on Side-A')
     parser.add_argument('--sideb',
         nargs='*',
         type=int,
+        default=[],
         help='Explicitly list critters on Side-B')
     parser.add_argument('--charfile',
         default='~/.config/combatwiz/creatures.csv',
@@ -292,29 +295,37 @@ class OneCreature(object):
         self.name             = creature_record[1]
         self.config           = creature_record[2]
         self.hp               = string2int(creature_record[7])
-        self.attack_distance = 2
-        self.attack_thaco    = string2int(creature_record[9])
-        self.attack_damage   = creature_record[10]
+        self.attack_distance  = 2
+        self.attack_thaco     = string2int(creature_record[9])
+        self.attack_damage    = creature_record[10]
         self.class_level      = string2int(creature_record[5])
         self.vision           = creature_record[11]
         self.move             = string2int(creature_record[12])
-        self.move_this_seg    = False
         self.attack_this_seg  = False
         if self.hp == 0:
             self.hp = randomizer.roll_dice(8, self.hd)
         self.curr_hp          = self.hp
         self.curr_loc         = None
         self.side             = creature_record[13]
+        self.last_round       = None # last round that creature moved
+        self.last_seg         = None # last seg that creature moved
 
-    def change_loc(self, new_loc):
-        if new_loc != self.curr_loc:
-            self.move_this_seg = True
-            self.curr_loc      = new_loc
+    def moved_this_seg(self, curr_round, curr_seg):
+        if (self.last_round == curr_round
+        and self.last_seg == curr_seg):
+            return True
         else:
-            self.move_this_seg = False
+            return False
+
+
+    def change_loc(self, new_loc, curr_round, curr_seg):
+        if new_loc != self.curr_loc:
+            self.last_round    = curr_round
+            self.last_seg      = curr_seg
+            self.curr_loc      = new_loc
 
     def in_range(self, enemy_loc):
-        print '%s, %s, %s' % (self.curr_loc, enemy_loc, get_distance(self.curr_loc, enemy_loc))
+        #print '%s, %s, %s' % (self.curr_loc, enemy_loc, get_distance(self.curr_loc, enemy_loc))
         if get_distance(self.curr_loc, enemy_loc) <= self.attack_distance:
             return True
         else:
@@ -333,59 +344,57 @@ class OneCreature(object):
 
 
 class ArenaManager(object):
+
     def __init__(self, creature_manager, verbose):
-       self.length       = 100
-       self.width        = 100
+       self.x_max        = 100
+       self.y_max        = 100
        self.verbose      = verbose
        self.creature_man = creature_manager
        self.creatures    = creature_manager.creatures
        self.rounds       = 0
        self.assign_creature_starting_locations()
 
+
     def my_print(self, val=''):
         if self.verbose:
             print val
 
+
     def assign_creature_starting_locations(self):
         # should be randomly distributed
-        self.creatures['fighter1'].curr_loc = [0.00, 0.00]
-        self.creatures['fighter2'].curr_loc = [self.length, self.width]
+        self.creatures['fighter1'].curr_loc     = [0, 0]
+        self.creatures['fighter2'].curr_loc     = [self.x_max, self.y_max]
         if 'fighter3' in self.creatures:
-            self.creatures['fighter3'].curr_loc = [0.00, self.width]
+            self.creatures['fighter3'].curr_loc = [0, self.y_max]
         if 'fighter4' in self.creatures:
-            self.creatures['fighter4'].curr_loc = [self.length, 0.00]
+            self.creatures['fighter4'].curr_loc = [self.x_max, 0]
         if 'fighter5' in self.creatures:
-            self.creatures['fighter5'].curr_loc = [(self.length/2), 0.00]
+            self.creatures['fighter5'].curr_loc = [(self.x_max/2), 0]
         if 'fighter6' in self.creatures:
-            self.creatures['fighter6'].curr_loc = [(self.length/2), self.width]
+            self.creatures['fighter6'].curr_loc = [(self.x_max/2), self.y_max]
         if 'fighter7' in self.creatures:
-            self.creatures['fighter7'].curr_loc = [0.00, (self.width/2)]
+            self.creatures['fighter7'].curr_loc = [0, (self.y_max/2)]
         if 'fighter8' in self.creatures:
-            self.creatures['fighter8'].curr_loc = [(self.length), (self.width/2)]
+            self.creatures['fighter8'].curr_loc = [(self.x_max), (self.y_max/2)]
+
 
     def runner(self):
-        # assign initial creature locations
-        #print creatures
 
-        for round in range(1, 101):
+        for self.curr_round in range(1, 101):
             self.rounds += 1
             self.my_print()
-            self.my_print('------------round: %d---------------' % round)
-            for seg in range(1, 11):
-                self.my_print('   ------------segment: %d---------------' % seg)
+            self.my_print('------------round: %d---------------' % self.curr_round)
+            for self.curr_seg in range(1, 11):
+                self.my_print('   ------------segment: %d---------------' % self.curr_seg)
                 for subject in self.creatures.keys():
                     if self.creatures[subject].curr_hp > 0:
-                        enemy_key = self.get_enemy_key(subject)
-                        enemy_loc = self.creatures[enemy_key].curr_loc
-                        for move in range(1, (self.creatures[subject].move + 1) ):
-                            self.creatures[subject].change_loc(self.move_subject_one_block(self.creatures[subject].curr_loc, enemy_loc))
-                        if self.creatures[subject].move_this_seg:
-                            self.my_print('        %-20.20s moved to location: %s' % \
-                                        (self.creatures[subject].name,
-                                        self.creatures[subject].curr_loc))
-                        if not self.creatures[subject].move_this_seg:
+                        enemy     = self.get_enemy(subject)
+                        enemy_loc = self.creatures[enemy].curr_loc
+                        self.move_subject_towards_enemy(subject, enemy)
+                        if (not self.creatures[subject].moved_this_seg(self.curr_round,
+                                                                   self.curr_seg)):
                             if self.creatures[subject].in_range(enemy_loc):
-                                self.attack(subject, enemy_key)
+                                self.attack(subject, enemy)
                         if self.creature_man.is_one_side_dead():
                             break
                 if self.creature_man.is_one_side_dead():
@@ -395,86 +404,96 @@ class ArenaManager(object):
         return (self.rounds, self.creatures)
 
 
+    def move_subject_towards_enemy(self, subject, enemy):
+        enemy_loc = self.creatures[enemy].curr_loc
+        for move in range(1, (self.creatures[subject].move + 1) ):
+            self.creatures[subject].change_loc(self.move_subject_one_block(self.creatures[subject].curr_loc,
+                                                                           enemy_loc),
+                                               self.curr_round,
+                                               self.curr_seg)
+            #print '        %s moves to %s' % (self.creatures[subject].name, self.creatures[subject].curr_loc)
+        if (self.creatures[subject].moved_this_seg(self.curr_round, self.curr_seg)):
+            self.my_print('        %-20.20s moved to location: %s' % \
+            (self.creatures[subject].name, self.creatures[subject].curr_loc))
+
+
 
     def move_subject_one_block(self, subject_loc, enemy_loc):
-        """ returns new location up to 1 block away from currrent location
+        """ Returns new location up to 1 block away from currrent location
             that is closer to the enemy location.
+
+            Note that once the battle begins it will generally indicate to
+            stay in the same position.
         """
         X = 0
         Y = 1
 
         # first get distance for all 9 movement possibilities:
         relative_moves = {}
-        for ymove in range(-1,2):
-            for xmove in range(-1,2):
-                dist  = get_distance(subject_loc, enemy_loc, ymove, xmove)
-                move  = (ymove, xmove)
-                relative_moves[move] = dist
+        for xmove in range(-1, 2):
+            for ymove in range(-1, 2):
+                sub_loc_adj = (subject_loc[X] + xmove, subject_loc[Y] + ymove)
+                if sub_loc_adj[X] < 0 or sub_loc_adj[Y] < 0:
+                    relative_moves[(xmove, ymove)] = 9999 # make going off board too expensive
+                else:
+                    relative_moves[(xmove, ymove)] = get_distance(sub_loc_adj, enemy_loc)
 
-        best_relative_move = get_key_with_least_value(relative_moves)
-
+        best_relative_move    = get_key_with_least_value(relative_moves)
         best_absolute_new_loc = (subject_loc[X] + best_relative_move[X],
                                  subject_loc[Y] + best_relative_move[Y])
-
         return best_absolute_new_loc
 
 
-    def get_enemy_key(self, subject_key):
+    def get_enemy(self, subject):
         """ Needs a test-harness.
         """
-        for key in self.creatures.keys():
-            if key != subject_key:
-                if self.creatures[subject_key].side != self.creatures[key].side:
-                    if self.creatures[key].curr_hp > 0:
-                        return key
-        raise ValueError, 'no enemy key found'
+        for enemy in self.creatures.keys():
+            if enemy != subject:
+                if self.creatures[subject].side != self.creatures[enemy].side:
+                    if self.creatures[enemy].curr_hp > 0:
+                        return enemy
+        raise ValueError, 'no enemy found'
 
 
-    def attack(self, subject_key, enemy_key):
+    def attack(self, subject, enemy):
         attacks_per_round  = 1.00
         segments_per_round = 10.00
         if random.random() > (attacks_per_round / segments_per_round):
             self.my_print('        %s fails to get an attack opportunity against %s' % \
-                          (self.creatures[subject_key].name, self.creatures[enemy_key].name))
+                          (self.creatures[subject].name, self.creatures[enemy].name))
             return
 
         roll   = randomizer.roll_dice(20, 1)
-        ac_hit = self.creatures[subject_key].attack_thaco - roll
-        if ac_hit <= self.creatures[enemy_key].ac:
-            damage = randomizer.roll_range(self.creatures[subject_key].attack_damage)
-            self.creatures[enemy_key].curr_hp -= damage
+        ac_hit = self.creatures[subject].attack_thaco - roll
+        if ac_hit <= self.creatures[enemy].ac:
+            damage = randomizer.roll_range(self.creatures[subject].attack_damage)
+            self.creatures[enemy].curr_hp -= damage
             self.my_print('        %s hits %s for %d damage with a to-hit roll of %d' % \
-                  (self.creatures[subject_key].name,
-                   self.creatures[enemy_key].name,
-                   damage,
-                   roll ))
-            if self.creatures[enemy_key].curr_hp < 1:
-                self.my_print('        %s dies!' % self.creatures[enemy_key].name)
+                  (self.creatures[subject].name, self.creatures[enemy].name, damage, roll ))
+            if self.creatures[enemy].curr_hp < 1:
+                self.my_print('        %s dies!' % self.creatures[enemy].name)
         else:
             self.my_print('        %s misses %s with a to-hit roll of %d' % \
-                           (self.creatures[subject_key].name,
-                            self.creatures[enemy_key].name, roll))
+                (self.creatures[subject].name, self.creatures[enemy].name, roll))
 
 
 
-def get_distance(loc_a, loc_b, xadj=0, yadj=0):
+def get_distance(loc_a, loc_b):
     """ inputs:
         - loc_a coordinates [positive x, positive y]
         - loc_b coordinates [positive x, positive y]
-        - x ajustment
-        - y ajustment
         outputs:
         - distance - float
     """
-    assert(loc_a[0] >= 0)
-    assert(loc_a[1] >= 0)
-    assert(loc_b[0] >= 0)
-    assert(loc_b[1] >= 0)
+    X = 0
+    Y = 1
+    assert(loc_a[X] >= 0)
+    assert(loc_a[Y] >= 0)
+    assert(loc_b[X] >= 0)
+    assert(loc_b[Y] >= 0)
 
-    xsub = 0
-    ysub = 1
-    dist = math.sqrt((loc_a[xsub] - loc_b[xsub] + xadj)**2 
-                    + (loc_a[ysub] - loc_b[ysub] + yadj)**2)
+    dist = math.sqrt((loc_a[X] - loc_b[X])**2 
+                   + (loc_a[Y] - loc_b[Y])**2)
     return dist
 
 
