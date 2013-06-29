@@ -1,7 +1,0 @@
-"id","name","config","race","class1","class1_level","hit_dice","hit_points","armor_class","attack1_thaco","attack1_damage","vision","move"
-,,,,,,,,,,,,
-1,"orc","standard","orc","monster",,1,,8,20,"1-8","Infra-6",8
-2,"orc_chieftain","chieftain","orc","monster",,2,,7,18,"2-9","Infra-6",12
-3,"gilgion","standard","human","paladin",8 ,,86,-3,10,"10-17","standard",8
-4,"giant","standard","giant","monster",10,,50,4,6,"11-20","standard",12
-5,,,,,,,,,,,,
