@@ -14,20 +14,20 @@ class Test_get_distance(unittest.TestCase):
         pass
 
     def test_different_places(self):
-        self.assertTrue(mod.get_distance([0,0], [10,10], 0, 0) > 1)
+        self.assertTrue(mod.get_distance([0,0], [10,10]) > 1)
 
     def test_same_place(self):
-        self.assertTrue(mod.get_distance([0,0], [0,0], 0, 0) == 0)
+        self.assertTrue(mod.get_distance([0,0], [0,0]) == 0)
 
     def test_distance(self):
-        self.assertTrue(int(mod.get_distance([10,5], [6,12], 0, 0)) == 8)
-
-    #def test_adjustments(self):
-    #    self.assertTrue(int(mod.get_distance([10,5], [6,12], 2, 2)) == ?)
+        self.assertTrue(int(mod.get_distance([10,5], [6,12])) == 8)
 
     def test_negative_coordinates(self):
-        self.assertRaises(AssertionError, mod.get_distance, [0,0], [-10,-10], 0, 0 )
+        self.assertRaises(AssertionError, mod.get_distance, [0,0], [-10,-10])
 
+    def test_different_places(self):
+        self.assertEqual(mod.get_distance([60,60], [60,68]), 8)
+        self.assertEqual(mod.get_distance([60,60], [60.0,68]), 8)
 
 if __name__ == "__main__":
     unittest.main()
