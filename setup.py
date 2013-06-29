@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-version = "0.11"
+version = "0.12"
 DESCRIPTION      = 'A combat simulator'
 LONG_DESCRIPTION = open('README.txt').read()
 
