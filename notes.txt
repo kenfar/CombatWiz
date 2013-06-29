@@ -1,0 +1,25 @@
+1.  randomizer:
+	- refactor dice functions into a class
+
+2.  main program
+	- args: change charids to be lists based on sides:
+		--side1...--side4
+        - done
+	- add appsdir
+
+3.  CreatureManager
+	- consider a separate file
+	- convert csv to yaml config
+	- validate input
+	- create UI for modifying list
+
+4.  ArenaManager
+	- store creatures as class of classes?
+	- use property to convert hp changes to update alive flag
+	- prevent critters to moving into spot occupied by something
+	- create MapManager
+
+5.  MapManager
+	- keeps track of what's on every block
+	- lets us know if a block is occupied
+	- CreateManager does NOT track where the creature currently is
