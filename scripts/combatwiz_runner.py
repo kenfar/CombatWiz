@@ -2,11 +2,12 @@
 
 from __future__ import division
 import sys
-import optparse
 import csv
 import fileinput
 import math
 import random
+
+import argparse
 from pprint import pprint as pp
 
 #--- gristle modules -------------------
@@ -25,11 +26,11 @@ def main():
             - runs each input record through process_cols to get output
             - writes records
     """
-    (opts, args) = get_opts_and_args()
+    args = get_args()
 
-    my_simmer = Simulator(opts.iterations, opts.charfile, opts.verbose, opts.charid1,
-                          opts.charid2, opts.charid3)
-    my_simmer.run_all_games()
+    my_simmer = Simulator(args.battles, args.charfile, args.verbose,
+                          args.critters, args.sidea, args.sideb)
+    my_simmer.run_all_battles()
     my_simmer.analysis()
 
     return 0
@@ -38,45 +39,41 @@ def main():
 
 class Simulator(object):
 
-    def __init__(self, games, charfile, verbose, *charids):
-        self.games           = games
+    def __init__(self, battles, charfile, verbose, critters, sidea, sideb):
+        self.battles         = battles
         self.verbose         = verbose
-        self.charids         = []
+        self.critters        = critters
+        self.critters_sidea  = sidea
+        self.critters_sideb  = sideb
         self.critter_results = []
         self.char_sum        = {}
-        for charid in charids:
-            if charid is not None:
-                self.charids.append(int(charid))
-        self.charfile     = charfile
-        self.game_results = []
+        self.charfile        = charfile
+        self.battle_results  = []
 
-    def run_all_games(self):
-        print
-        for game in xrange(self.games):
+    def run_all_battles(self):
+        for battle in xrange(self.battles):
             if self.verbose:
                 print
-                print '==== GAME: %d ========================================' % game
-            else:
-                if game % 10 == 0:
-                    print '.',
-            my_creatures = CreatureManager(self.charfile, self.charids)
-            if game == 0:
+                print '==== Battle: %d ========================================' % battle
+            my_creatures = CreatureManager(self.charfile, self.critters,
+                                           self.critters_sidea, self.critters_sideb)
+            if battle == 0:
                 my_creatures.print_creature_summary()
             one_arena     = ArenaManager(my_creatures, self.verbose)
-            self.game_results.append(one_arena.runner())
+            self.battle_results.append(one_arena.runner())
 
     def analysis(self):
         """ input:  results are a tuple consisting of rounds followed by a
                     creatures dictionary.
         """
-        for game in self.game_results:
-            rounds    = game[0]
-            creatures = game[1]
+        for battle in self.battle_results:
+            rounds    = battle[0]
+            creatures = battle[1]
             for key in creatures:
                 if creatures[key].curr_hp > 0:
                     winner_name = creatures[key].name
                     self.critter_results.append((creatures[key].name,
-                                            creatures[key].critid,
+                                            creatures[key].critter_id,
                                             int(rounds),
                                             creatures[key].hp,
                                             creatures[key].curr_hp))
@@ -85,22 +82,23 @@ class Simulator(object):
 
         print
         for char in self.char_sum:
-            if 'critid' in self.char_sum[char]:
+            if 'critter_id' in self.char_sum[char]:
                 print
                 print 'For: %s' % self.char_sum[char]['name']
-                print 'Games:                 %d' % self.games
+                print 'Battles:               %d' % self.battles
                 print 'Total Wins:            %d' % self.char_sum[char]['tot_wins']
                 print 'Total Damage Taken:    %d' % self.char_sum[char]['tot_damage']
                 print 'Total Rounds Required: %d' % self.char_sum[char]['tot_rounds']
                 print 'Mean Rounds Required:  %2.1f' % (self.char_sum[char]['tot_rounds'] /
                 self.char_sum[char]['tot_wins'])
-                print 'Percentage of Wins:    %d' % ((self.char_sum[char]['tot_wins'] / self.games) * 100)
+                print 'Percentage of Wins:    %d' %  \
+                ((self.char_sum[char]['tot_wins'] / self.battles) * 100)
                 print 'Mean PCT HP Taken:     %d%%' % ((self.char_sum[char]['tot_damage'] /
                   self.char_sum[char]['tot_wins']) / self.char_sum[char]['hp'] * 100)
 
 
         #print sum(critter_results[1])
-        #print sum(critter_results[1]) / self.iterations
+        #print sum(critter_results[1]) / self.battles
 
 
     def _create_char_summary(self):
@@ -114,7 +112,7 @@ class Simulator(object):
             except KeyError:
                 self.char_sum[crit[0]]                = {}
                 self.char_sum[crit[0]]['name']        = crit[0]
-                self.char_sum[crit[0]]['critid']      = crit[1]
+                self.char_sum[crit[0]]['critter_id']  = crit[1]
                 self.char_sum[crit[0]]['hp']          = crit[3]
                 self.char_sum[crit[0]]['tot_rounds']  = crit[2]
                 self.char_sum[crit[0]]['tot_wins']    = 1
@@ -123,77 +121,102 @@ class Simulator(object):
 
 
 
-def get_opts_and_args():
-    """ gets opts & args and returns them
+def get_args():
+    """ gets args and returns them
         Input:
             - command line args & options
         Output:
-            - opts dictionary
-            - args dictionary
+            - args namespace
     """
-    use = ("%prog is used to ... "
-           " \n"
-           "   %prog [file] [misc options]")
-    parser = optparse.OptionParser(usage = use)
+    parser = argparse.ArgumentParser(description='Simulate combat between critters')
 
-    parser.add_option('--charid1',
-           help='Specifies the id for the first character')
-    parser.add_option('--charid2',
-           help='Specifies the id for the second character')
-    parser.add_option('--charid3',
-           help='Specifies the id for the third character')
-    parser.add_option('--charfile',
-           default='characters.csv',
-           help='Specifies the file with character details')
-    parser.add_option('--iterations',
-           default=1,
-           type=int,
-           help='Specifies the number of fights to simulate')
-    parser.add_option('--verbose',
-           action='store_true',
-           default=False,
-           help='Specifies whether or not to print details.  Default is False.')
+    parser.add_argument('critters',
+        nargs='*',
+        type=int,
+        help='Specifies the critters to fight by id. All monsters will be on Side-A, all humanoids on Side-B.')
+    parser.add_argument('--sidea',
+        nargs='*',
+        type=int,
+        help='explicitly list critters on Side-A')
+    parser.add_argument('--sideb',
+        nargs='*',
+        type=int,
+        help='Explicitly list critters on Side-B')
+    parser.add_argument('--charfile',
+        default='~/.config/combatwiz/creatures.csv',
+        help='Specifies the file with character details')
+    parser.add_argument('--battles',
+        default=1,
+        type=int,
+        help='Specifies the number of battles to run')
+    parser.add_argument('--verbose',
+        action='store_true',
+        default=False,
+        help='Specifies whether or not to print details.  Default is False.')
 
-    (opts, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if opts.charid1 is None or opts.charid2 is None:
-        parser.error('charid1 & charid2 must be provided')
+    if (not args.critters and not args.sidea and not args.sideb):
+        parser.error('Please provide critter ids for the battle')
 
-    return opts, args
+    if args.critters and len(args.critters) == 1:
+        parser.error('provide more than one critter to fight')
 
+    if args.critters and (args.sidea or args.sideb):
+        parser.error('provide either critters argument or both side options')
 
+    if (args.sidea and not args.sideb) or (args.sideb and not args.sidea):
+        parser.error('when specifying critters by side - provide both sides')
+
+    return args
 
 
 
 
 class CreatureManager(object):
-    def __init__(self, charfile, charids):
+    def __init__(self, charfile, critters, critters_sidea, critters_sideb):
         self.creatures        = {}
-        self.charids          = charids
+        self.critters         = critters
+        self.critters_sidea   = critters_sidea
+        self.critters_sideb   = critters_sideb
         self.load_creatures(charfile)
-        #print 'self.creatures: '
-        #print self.creatures
-        #print 'self.charids: '
-        #print self.charids
 
 
     def is_one_side_dead(self):
-        """ Only mildly useful - since creatures are currently provided
-            to Arena class as a dictionary of creatures rather than as a
-            class of classes.  Also - a complete copy of a function inside
-            the Arena class.
+        """ output:
+               - True if the members of either side are completely dead
+               - False otherwise
         """
-        side_1_alive = False
-        side_2_alive = False
+        side_a_dead = True
+        side_b_dead = True
         for key in self.creatures.keys():
-            if self.creatures[key].side == 'side-1':
+            if self.creatures[key].side == 'side-a':
                 if self.creatures[key].curr_hp >= 1:
-                    side_1_alive = True
+                    side_a_dead = False
             else:
                 if self.creatures[key].curr_hp >= 1:
-                    side_2_alive = True
+                    side_b_dead = False
+        return (side_a_dead or side_b_dead)
 
-        return (not side_1_alive or not side_2_alive)
+
+    def _get_side_and_count(self, critter_id, critter_class):
+        side  = None
+        count = 0
+        assert(int(critter_id))
+        if int(critter_id) in self.critters_sidea:
+            count = self.critters_sidea.count(int(critter_id))
+            side  = 'side-a'
+        elif int(critter_id) in self.critters_sideb:
+            count = self.critters_sideb.count(int(critter_id))
+            side  = 'side-b'
+        elif int(critter_id) in self.critters:
+            count = self.critters.count(int(critter_id))
+            if critter_class == 'monster':
+                side  = 'side-b'
+            else:
+                side  = 'side-a'
+
+        return (side, count)
 
 
     def load_creatures(self, charfile):
@@ -205,59 +228,55 @@ class CreatureManager(object):
                     - adds a incrementing suffix if the same creature
                       is in combat more than once.
         """
-        charnum = 1
+        fighter_num = 1
         for record in csv.reader(fileinput.input(charfile)):
             orig_record = list(record)
             try:
+                if record[0] in ['id', '', ' ']:
+                    continue  # header-record
                 if not record:
                     break
-                repeat_count = self.charids.count(int(record[0])) 
-                if record[4] == 'monster':
-                    record.append('side-2')
-                else:
-                    record.append('side-1')
-                while repeat_count:
-                    if self.charids.count(int(record[0])) > 1:
-                        record[1] = orig_record[1] + '-' + str(repeat_count)
-                    self.creatures['char%d' % charnum] = OneCreature(record)
-                    charnum += 1
-                    repeat_count -= 1
+                (side, count) = self._get_side_and_count(record[0], record[4])
+                record.append(side)
+                while count:
+                    if self.critters.count(int(record[0])) > 1:
+                        record[1] = orig_record[1] + '-' + str(count)
+                    self.creatures['fighter%d' % fighter_num] = OneCreature(record)
+                    fighter_num += 1
+                    count       -= 1
             except ValueError:
                 pass # skipping over header row or any empty rows
 
 
     def print_creature_summary(self):
 
-        print
         for key in self.creatures.keys():
             print key
             print
             print '----------------------------------------------------------------'
-            print 'charid:             %-8.8s    side:             %-10.10s'  %  \
+            print 'fighter_num:        %-8.8s    side:           %-10.10s'  %  \
                 (key, self.creatures[key].side)
-            print 'critid:             %-4.4s        name:           %-20.20s'  %  \
-                (self.creatures[key].critid, self.creatures[key].name)
-            print 'hd:                 %-4.4s        hp:               %-4.4s  '  %  \
+            print 'critter_id:         %-4.4s        name:           %-20.20s'  %  \
+                (self.creatures[key].critter_id, self.creatures[key].name)
+            print 'hd:                 %-4.4s        hp:             %-4.4s  '  %  \
                 (self.creatures[key].hd, self.creatures[key].hp)
-            print 'ac:                 %-4.4s        race:             %-20.20s'  %  \
+            print 'ac:                 %-4.4s        race:           %-20.20s'  %  \
                 (self.creatures[key].ac, self.creatures[key].race)
-            print 'class1:             %-10.10s class1_level:       %-4.4s  '  %  \
-                (self.creatures[key].class1, self.creatures[key].class1_level)
-            print 'attack1_thaco:      %-4.4s       attack1_damage:   %-5.5s  '  %  \
-                (self.creatures[key].attack1_thaco, self.creatures[key].attack1_damage)
-            print 'vision:             %-4.10s    move:             %-4.4s  '  %  \
+            print 'class:              %-10.10s  class_level:    %-4.4s  '  %  \
+                (self.creatures[key].critter_class,  self.creatures[key].class_level)
+            print 'attack_thaco:       %-4.4s        attack_damage:  %-5.5s  '  %  \
+                (self.creatures[key].attack_thaco, self.creatures[key].attack_damage)
+            print 'vision:             %-10.10s  move:           %-4.4s  '  %  \
                 (self.creatures[key].vision, self.creatures[key].move)
         print '----------------------------------------------------------------'
+
 
     def __repr__(self):
         result = 'my creatures:\n'
         for key in self.creatures.keys():
-            print 'charid:    %-8.8s\n' % key
-            result += 'charid:    %-8.8s\n' % key
-            result += 'id:        %-4.4s        config:  %-20.20s\n'  %  \
-                (self.creatures[key].id, self.creatures[key].name)
-            result += 'hd:        %-4.4s        hp:      %-4.4s \n'  %  \
-                (self.creatures[key].hd, self.creatures[key].hp)
+            result += 'critter_id: %-8.8s       side:    %-8.8s  \n' % (key, self.creatures[key].side)
+            result += 'id:        %-4.4s        config:  %-20.20s\n' % (self.creatures[key].critter_id, self.creatures[key].name)
+            result += 'hd:        %-4.4s        hp:      %-4.4s  \n' % (self.creatures[key].hd, self.creatures[key].hp)
         return result
 
 
@@ -265,18 +284,18 @@ class CreatureManager(object):
 
 class OneCreature(object):
     def __init__(self, creature_record):
-        self.critid           = string2int(creature_record[0])
+        self.critter_id       = string2int(creature_record[0])
         self.hd               = string2int(creature_record[6])
         self.ac               = string2int(creature_record[8])
         self.race             = creature_record[3]
-        self.class1           = creature_record[4]
+        self.critter_class    = creature_record[4]
         self.name             = creature_record[1]
         self.config           = creature_record[2]
         self.hp               = string2int(creature_record[7])
-        self.attack1_distance = 2
-        self.attack1_thaco    = string2int(creature_record[9])
-        self.attack1_damage   = creature_record[10]
-        self.class1_level     = string2int(creature_record[5])
+        self.attack_distance = 2
+        self.attack_thaco    = string2int(creature_record[9])
+        self.attack_damage   = creature_record[10]
+        self.class_level      = string2int(creature_record[5])
         self.vision           = creature_record[11]
         self.move             = string2int(creature_record[12])
         self.move_this_seg    = False
@@ -295,10 +314,18 @@ class OneCreature(object):
             self.move_this_seg = False
 
     def in_range(self, enemy_loc):
-        if get_distance(self.curr_loc, enemy_loc) <= self.attack1_distance:
+        print '%s, %s, %s' % (self.curr_loc, enemy_loc, get_distance(self.curr_loc, enemy_loc))
+        if get_distance(self.curr_loc, enemy_loc) <= self.attack_distance:
             return True
         else:
             return False
+
+    def __repr__(self):
+        result  = 'critter_id: %-8.8s       side:    %-8.8s  \n' % (self.critter_id, self.side)
+        result += 'id:        %-4.4s        config:  %-20.20s\n' % (self.critter_id, self.name)
+        result += 'hd:        %-4.4s        hp:      %-4.4s  \n' % (self.hd, self.hp)
+        return result
+
 
 
 
@@ -306,23 +333,39 @@ class OneCreature(object):
 
 
 class ArenaManager(object):
-    def __init__(self, creatures, verbose):
-       self.length    = 100
-       self.width     = 100
-       self.verbose   = verbose
-       self.creatures = creatures.creatures
-       self.rounds    = 0
+    def __init__(self, creature_manager, verbose):
+       self.length       = 100
+       self.width        = 100
+       self.verbose      = verbose
+       self.creature_man = creature_manager
+       self.creatures    = creature_manager.creatures
+       self.rounds       = 0
+       self.assign_creature_starting_locations()
 
     def my_print(self, val=''):
         if self.verbose:
             print val
 
+    def assign_creature_starting_locations(self):
+        # should be randomly distributed
+        self.creatures['fighter1'].curr_loc = [0.00, 0.00]
+        self.creatures['fighter2'].curr_loc = [self.length, self.width]
+        if 'fighter3' in self.creatures:
+            self.creatures['fighter3'].curr_loc = [0.00, self.width]
+        if 'fighter4' in self.creatures:
+            self.creatures['fighter4'].curr_loc = [self.length, 0.00]
+        if 'fighter5' in self.creatures:
+            self.creatures['fighter5'].curr_loc = [(self.length/2), 0.00]
+        if 'fighter6' in self.creatures:
+            self.creatures['fighter6'].curr_loc = [(self.length/2), self.width]
+        if 'fighter7' in self.creatures:
+            self.creatures['fighter7'].curr_loc = [0.00, (self.width/2)]
+        if 'fighter8' in self.creatures:
+            self.creatures['fighter8'].curr_loc = [(self.length), (self.width/2)]
+
     def runner(self):
         # assign initial creature locations
         #print creatures
-        self.creatures['char1'].curr_loc = [0.00, 0.00]
-        self.creatures['char2'].curr_loc = [0.00, self.width]
-        self.creatures['char3'].curr_loc = [self.length, self.width]
 
         for round in range(1, 101):
             self.rounds += 1
@@ -330,60 +373,50 @@ class ArenaManager(object):
             self.my_print('------------round: %d---------------' % round)
             for seg in range(1, 11):
                 self.my_print('   ------------segment: %d---------------' % seg)
-                for key in self.creatures.keys():
-                    if self.creatures[key].curr_hp > 0:
-                        enemy_key = self.get_enemy_key(key)
+                for subject in self.creatures.keys():
+                    if self.creatures[subject].curr_hp > 0:
+                        enemy_key = self.get_enemy_key(subject)
                         enemy_loc = self.creatures[enemy_key].curr_loc
-                        for move in range(1, (self.creatures[key].move + 1) ):
-                            self.creatures[key].change_loc(self.move_subject(self.creatures[key].curr_loc, enemy_loc))
-                        if self.creatures[key].move_this_seg:
-                            self.my_print('         %-20.20s moved to location: %s' % \
-                                        (self.creatures[key].name,
-                                        self.creatures[key].curr_loc))
-                        if not self.creatures[key].move_this_seg:
-                            if self.creatures[key].in_range(enemy_loc):
-                                self.attack(key, enemy_key)
-                        if self.is_one_side_dead():
+                        for move in range(1, (self.creatures[subject].move + 1) ):
+                            self.creatures[subject].change_loc(self.move_subject_one_block(self.creatures[subject].curr_loc, enemy_loc))
+                        if self.creatures[subject].move_this_seg:
+                            self.my_print('        %-20.20s moved to location: %s' % \
+                                        (self.creatures[subject].name,
+                                        self.creatures[subject].curr_loc))
+                        if not self.creatures[subject].move_this_seg:
+                            if self.creatures[subject].in_range(enemy_loc):
+                                self.attack(subject, enemy_key)
+                        if self.creature_man.is_one_side_dead():
                             break
-                if self.is_one_side_dead():
+                if self.creature_man.is_one_side_dead():
                     break
-            if self.is_one_side_dead():
+            if self.creature_man.is_one_side_dead():
                 break
         return (self.rounds, self.creatures)
 
 
-    def is_one_side_dead(self):
-        side_1_alive = False
-        side_2_alive = False
-        for key in self.creatures.keys():
-            if self.creatures[key].side == 'side-1':
-                if self.creatures[key].curr_hp >= 1:
-                    side_1_alive = True
-            else:
-                if self.creatures[key].curr_hp >= 1:
-                    side_2_alive = True
 
-        return (not side_1_alive or not side_2_alive)
-
-
-    def move_subject(self, subject_loc, enemy_loc):
-        """ returns new location
+    def move_subject_one_block(self, subject_loc, enemy_loc):
+        """ returns new location up to 1 block away from currrent location
+            that is closer to the enemy location.
         """
-        results = {}
-        for yadj in range(-1,2):    # actual values -1, 0, 1
-            for xadj in range(-1,2):   # actual values -1, 0, 1
-                dist = get_distance(subject_loc, enemy_loc, yadj, xadj)
-                key  = (yadj, xadj)
-                results[key] = dist
-        best_key_value = 9999999
-        best_key       = None
-        for key in results.keys():
-            if results[key] < best_key_value:
-                best_key = key
-                best_key_value = results[key]
-        new_loc = (subject_loc[0] + best_key[0],
-                subject_loc[1] + best_key[1])
-        return new_loc
+        X = 0
+        Y = 1
+
+        # first get distance for all 9 movement possibilities:
+        relative_moves = {}
+        for ymove in range(-1,2):
+            for xmove in range(-1,2):
+                dist  = get_distance(subject_loc, enemy_loc, ymove, xmove)
+                move  = (ymove, xmove)
+                relative_moves[move] = dist
+
+        best_relative_move = get_key_with_least_value(relative_moves)
+
+        best_absolute_new_loc = (subject_loc[X] + best_relative_move[X],
+                                 subject_loc[Y] + best_relative_move[Y])
+
+        return best_absolute_new_loc
 
 
     def get_enemy_key(self, subject_key):
@@ -401,14 +434,14 @@ class ArenaManager(object):
         attacks_per_round  = 1.00
         segments_per_round = 10.00
         if random.random() > (attacks_per_round / segments_per_round):
-            self.my_print('        %s fails to get an attack opportunity' %
-                          self.creatures[subject_key].name)
+            self.my_print('        %s fails to get an attack opportunity against %s' % \
+                          (self.creatures[subject_key].name, self.creatures[enemy_key].name))
             return
 
         roll   = randomizer.roll_dice(20, 1)
-        ac_hit = self.creatures[subject_key].attack1_thaco - roll
+        ac_hit = self.creatures[subject_key].attack_thaco - roll
         if ac_hit <= self.creatures[enemy_key].ac:
-            damage = randomizer.roll_range(self.creatures[subject_key].attack1_damage)
+            damage = randomizer.roll_range(self.creatures[subject_key].attack_damage)
             self.creatures[enemy_key].curr_hp -= damage
             self.my_print('        %s hits %s for %d damage with a to-hit roll of %d' % \
                   (self.creatures[subject_key].name,
@@ -445,6 +478,7 @@ def get_distance(loc_a, loc_b, xadj=0, yadj=0):
     return dist
 
 
+
 def string2int(val):
     """ needs test harness
     """
@@ -456,6 +490,15 @@ def string2int(val):
         except TypeError:
            return 0
 
+
+def get_key_with_least_value(source_dict):
+    least_key_value = 9999999
+    least_key       = None
+    for key in source_dict.keys():
+        if source_dict[key] < least_key_value:
+            least_key       = key
+            least_key_value = source_dict[key]
+    return least_key
 
 
 if __name__ == '__main__':
