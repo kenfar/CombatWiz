@@ -27,65 +27,64 @@ of combatants using Monte Carlo simulation methods.</p>
 
 <h1>Example Run:</h1>
 
-<p>$ combatwiz_runner.py --charid1 3 --charid2 2 --charid3 4 --iterations 1000 --charfile data/characters.csv</p>
+<p>$ combatwiz_runner.py --sidea 1 3 --sideb 4 --charfile --iterations 1000 ../data/creatures.csv</p>
 
-<pre><code>char1
+<pre><code>----------------------------------------------------------------
+fighter_num:        fighter1    side:           side-a    
+critter_id:         1           name:           orc                 
+hd:                 1           hp:             6     
+ac:                 8           race:           orc                 
+class:              monster     class_level:    0     
+attack_thaco:       20          attack_damage:  1-8    
+vision:             Infra-6     move:           8     
+fighter3
+
 ----------------------------------------------------------------
-charid:             char1       side:             side-2    
-critid:             2           name:           orc_chieftain       
-hd:                 2           hp:               13    
-ac:                 7           race:             orc                 
-class1:             monster    class1_level:       0     
-attack1_thaco:      18         attack1_damage:   2-9    
-vision:             Infra-6    move:             12    
+fighter_num:        fighter3    side:           side-b    
+critter_id:         4           name:           giant               
+hd:                 0           hp:             50    
+ac:                 4           race:           giant               
+class:              monster     class_level:    10    
+attack_thaco:       6           attack_damage:  11-20  
+vision:             standard    move:           12    
+fighter2
 
-char3
 ----------------------------------------------------------------
-charid:             char3       side:             side-2    
-critid:             4           name:           giant               
-hd:                 0           hp:               50    
-ac:                 4           race:             giant               
-class1:             monster    class1_level:       10    
-attack1_thaco:      6          attack1_damage:   11-20  
-vision:             standard    move:             12    
-
-char2
-----------------------------------------------------------------
-charid:             char2       side:             side-1    
-critid:             3           name:           paladin
-hd:                 0           hp:               86    
-ac:                 -3          race:             human               
-class1:             paladin    class1_level:       8     
-attack1_thaco:      10         attack1_damage:   10-17  
-vision:             standard    move:             8     
+fighter_num:        fighter2    side:           side-a    
+critter_id:         3           name:           gilgion             
+hd:                 0           hp:             86    
+ac:                 -3          race:           human               
+class:              paladin     class_level:    8     
+attack_thaco:       10          attack_damage:  10-17  
+vision:             standard    move:           8     
 ----------------------------------------------------------------
 
-For: paladin
-Games:                 1000
-Total Wins:            740
-Total Damage Taken:    31247
-Total Rounds Required: 4995
-Mean Rounds Required:  6.8
-Percentage of Wins:    74
-Mean PCT HP Taken:     49%
-
-For: orc_chieftain
-Games:                 1000
-Total Wins:            7
-Total Damage Taken:    10
-Total Rounds Required: 45
+For: gilgion
+Battles:               1000
+Total Wins:            864
+Total Damage Taken:    29672
+Total Rounds Required: 5488
 Mean Rounds Required:  6.4
-Percentage of Wins:    0
-Mean PCT HP Taken:     11%
+Percentage of Wins:    86
+Mean PCT HP Taken:     39%
 
 For: giant
-Games:                 1000
-Total Wins:            260
-Total Damage Taken:    6884
-Total Rounds Required: 2069
-Mean Rounds Required:  8.0
-Percentage of Wins:    26
-Mean PCT HP Taken:     52%
+Battles:               1000
+Total Wins:            136
+Total Damage Taken:    4383
+Total Rounds Required: 1058
+Mean Rounds Required:  7.8
+Percentage of Wins:    13
+Mean PCT HP Taken:     64%
+
+For: orc
+Battles:               1000
+Total Wins:            12
+Total Damage Taken:    0
+Total Rounds Required: 42
+Mean Rounds Required:  3.5
+Percentage of Wins:    1
+Mean PCT HP Taken:     0%
 </code></pre>
 
 <h1>Installation</h1>
@@ -93,14 +92,21 @@ Mean PCT HP Taken:     52%
 <ul>
 <li><p>Using <a href="http://www.pip-installer.org/en/latest/">pip</a> (preferred) or <a href="http://peak.telecommunity.com/DevCenter/EasyInstall">easyinstall</a>:</p>
 
-<p>~~~
-   TBD
-   ~~~</p></li>
+<pre><code>~~~
+$ pip install combatwiz
+$ easy_install combatwiz
+~~~
+</code></pre></li>
 <li><p>Or install manually from [pypi]:</p>
 
-<p>~~~
-   TBD
-   ~~~</p></li>
+<pre><code>~~~
+$ mkdir ~\Downloads
+$ wget https://pypi.python.org/packages/source/d/combatwiz/combatwiz-0.12.tar.gz
+$ tar -xvf easy_install combatwiz
+$ cd ~\Downloads\combatwiz-*
+$ python setup.py install
+~~~
+</code></pre></li>
 </ul>
 
 <h1>Dependencies</h1>
