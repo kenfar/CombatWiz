@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+from __future__ import division
 import sys
 import unittest
 import pytest
+import os
 
-sys.path.append('../')
-import randomizer as mod
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+#sys.path.append('../')
+import combatwiz.randomizer as mod
 
 
 class TestDieRangeCalc(object):
