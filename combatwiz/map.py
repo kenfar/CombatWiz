@@ -2,10 +2,12 @@
 
 import sys
 import networkx as nx
+import numpy
 import matplotlib.pyplot as plt
 
 def main():
     new_map = Mapper()
+    new_map.display()
 
 class Mapper:
 
@@ -13,6 +15,7 @@ class Mapper:
         '''
         Class for network
         '''
+        self.dimensions = dimensions
         self.graph = nx.Graph()
         self.initialize_graph(dimensions)
         self.create_edges(axes)
@@ -43,19 +46,28 @@ class Mapper:
                     pass
                 elif x_flag in good_val_range and y_flag in good_val_range:
                     self.graph.add_edge(node, cursor)
+                    node.edges.append(cursor)
 
     def display(self):
         '''
         Displays the graph using matplotlib
         '''
-        position = nx.spring_layout(self.graph, iterations=100)
+        position = self.establish_positions(self.dimensions)
         nx.draw_networkx(self.graph,
                          pos=position,
-                         font_size=1,
+                         font_size=5,
                          linewidths=0.5,
                          width=0.5)
         plt.show()
 
+    def establish_positions(self, dimensions):
+        '''
+        Get grid positions
+        '''
+        positions = {}
+        for node in self.graph:
+            positions[node] = [node.x, node.y]
+        return positions
 
 class Node:
     def __init__(self):
@@ -65,6 +77,7 @@ class Node:
         self.x        = None
         self.y        = None
         self.contents = None
+        self.edges    = []
 
 
 if __name__ == "__main__":
