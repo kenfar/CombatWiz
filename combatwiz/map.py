@@ -2,20 +2,42 @@
 
 import sys
 import networkx as nx
-import numpy
 import matplotlib.pyplot as plt
 
 def main():
     new_map = Mapper()
     new_map.display()
+    new_map.get_route(new_map.get_node('0:0'), new_map.get_node('10:5'))
 
-class Mapper:
+class Mapper(object):
+    '''
+    Basic calls for ease of use
+    '''
+    def get_route(self, source, target):
+        '''
+        Return list of node traversals
+        '''
+        return nx.shortest_path(self.graph, source, target)
 
+    def get_node(self, name):
+        '''
+        Returns node based on id
+        '''
+        try:
+            target_node = self.node_dict[name]
+        except KeyError:
+            return None
+        return target_node
+
+    '''
+    Bottom code to establish important things
+    '''
     def __init__(self, dimensions=(20, 20), axes=8):
         '''
         Class for network
         '''
         self.dimensions = dimensions
+        self.node_dict = {}
         self.graph = nx.Graph()
         self.initialize_graph(dimensions)
         self.create_edges(axes)
@@ -29,7 +51,9 @@ class Mapper:
                 new_node = Node()
                 new_node.x = x
                 new_node.y = y
+                new_node.name = "%i:%i" % (x, y)
                 self.graph.add_node(new_node)
+                self.node_dict[new_node.name] = new_node
 
     def create_edges(self, axes):
         '''
@@ -53,12 +77,15 @@ class Mapper:
         Displays the graph using matplotlib
         '''
         position = self.establish_positions(self.dimensions)
+        sizes = self.establish_sizes()
         nx.draw_networkx(self.graph,
                          pos=position,
                          font_size=5,
                          linewidths=0.5,
-                         width=0.5)
+                         width=0.5,
+                         node_size=sizes)
         plt.show()
+#        plt.savefig('grid.svg')
 
     def establish_positions(self, dimensions):
         '''
@@ -69,15 +96,31 @@ class Mapper:
             positions[node] = [node.x, node.y]
         return positions
 
+    def establish_sizes(self):
+        '''
+        Get node sizes
+        '''
+        sizes = []
+        for node in self.graph:
+            sizes.append(20)
+        return sizes
+
 class Node:
     def __init__(self):
         '''
         Node class
         '''
+        self.name     = None
         self.x        = None
         self.y        = None
         self.contents = None
         self.edges    = []
+
+    def isEmpty(self):
+        if self.contents:
+            return False
+        else:
+            return True
 
 
 if __name__ == "__main__":
