@@ -3,11 +3,12 @@
 import sys
 import networkx as nx
 import matplotlib.pyplot as plt
+import threading
 
 def main():
-    new_map = Mapper()
-    new_map.display()
-    new_map.get_route(new_map.get_node('0:0'), new_map.get_node('10:5'))
+    new_map = Mapper(dimensions=(100, 100))
+#    new_map.display()
+    print new_map.get_route(new_map.get_node('0:0'), new_map.get_node('10:5'))
 
 class Mapper(object):
     '''
@@ -46,14 +47,23 @@ class Mapper(object):
         '''
         Initialize the number of nodes needed
         '''
+        threads = []
         for x in range(dimensions[0]):
             for y in range(dimensions[1]):
-                new_node = Node()
-                new_node.x = x
-                new_node.y = y
-                new_node.name = "%i:%i" % (x, y)
-                self.graph.add_node(new_node)
-                self.node_dict[new_node.name] = new_node
+                threads.append(threading.Thread(target=self.add_node, args=(x, y)))
+        [thread.start() for thread in threads]
+
+    def add_node(self, x, y):
+        '''
+        Add node to graph
+        '''
+        new_node = Node()
+        new_node.x = x
+        new_node.y = y
+        new_node.name = "%i:%i" % (x, y)
+        self.graph.add_node(new_node)
+        self.node_dict[new_node.name] = new_node
+
 
     def create_edges(self, axes):
         '''
@@ -106,6 +116,7 @@ class Mapper(object):
         return sizes
 
 class Node:
+    __slots__ = ('name', 'x', 'y', 'contents', 'edges')
     def __init__(self):
         '''
         Node class
@@ -122,6 +133,9 @@ class Node:
         else:
             return True
 
+class Edge:
+    def __init__(self, weight):
+        self.weight = weight
 
 if __name__ == "__main__":
     sys.exit(main())
