@@ -112,9 +112,9 @@ class Test_roll_dice(unittest.TestCase):
         for i in range(10000):
             results.append(float(mod.roll_dice(8,1,0)))
         average = sum(results) / len(results)
-        print 'average: %f ' % average
-        print 'min:     %d ' % min(results)
-        print 'max:     %d ' % max(results)
+        print('average: %f ' % average)
+        print('min:     %d ' % min(results))
+        print('max:     %d ' % max(results))
 
 if __name__ == "__main__":
     unittest.main()
