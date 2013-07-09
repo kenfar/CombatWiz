@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
+import sys
+import os
 import unittest
-import map
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import combatwiz.map  as map
 
 class MapTester(unittest.TestCase):
 
